@@ -1,7 +1,8 @@
 const Appointment = require('../models/Appointment');
 const DoctorAvailability = require('../models/DoctorAvailability');
 const DoctorProfile = require('../models/DoctorProfile');
-const User = require('../models/User'); // Assuming User model is used for both doctors and patients
+const User = require('../models/User');
+const reminderService = require('./reminder.service'); // Assuming User model is used for both doctors and patients
 
 /**
  * Finds available doctors based on specialty, urgency, and preferred time.
@@ -184,6 +185,23 @@ const bookAppointment = async (patientId, doctorId, date, time, reason) => {
     doctorAvailability.slots[slotIndex].appointmentId = newAppointment._id; // Link appointment to slot
     await doctorAvailability.save();
     console.log("Appointment Service - Doctor availability updated (slot marked as booked).");
+
+    const doctorUser = await User.findById(doctorId); // Assuming doctorId is a User ID
+    const patientUser = await User.findById(patientId); // Assuming patientId is a User ID
+
+    if (patientUser && patientUser.phoneNumber && patientUser.reminderPreference) { // Assuming User model has phoneNumber and reminderPreference field
+        // Example: Schedule SMS reminder 30 minutes before
+        await reminderService.scheduleAppointmentReminder(
+            newAppointment._id,
+            newAppointment.date, // This is the full date object
+            newAppointment.time, // This is the "HH:MM" string
+            patientId,
+            doctorUser ? doctorUser.username : 'Unknown Doctor',
+            patientUser.reminderPreference // e.g., 'sms', 'call'
+        );
+    } else {
+        console.warn(`Could not schedule reminder for patient ${patientId}: Phone number or reminder preference missing.`);
+    }
 
     // Populate doctor and patient details for the response
     const createdAppointment = await Appointment.findById(newAppointment._id)

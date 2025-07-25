@@ -5,7 +5,13 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true }, // Store hashed passwords!
-    role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' }
+    role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' },
+    phoneNumber: { type: String, unique: true, sparse: true }, // E.164 format: +237670123456
+    reminderPreference: {
+        type: String,
+        enum: ['sms', 'call', 'email', 'in-app-notification', 'none'],
+        default: 'none'
+    },
 }, { timestamps: true });
 
 // Hash password before saving
